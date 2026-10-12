@@ -1,0 +1,55 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+
+# Monad testnet, per docs.monad.xyz/guides/verify-smart-contract/foundry — lets
+# `--rpc-url`/`--chain` be omitted from every forge command below, and
+# `use_literal_content` is that same guide's recommendation for verification:
+# it embeds the actual source in the standard-json-input a verifier checks
+# against, rather than relying on solc's metadata to resolve it.
+eth-rpc-url = "https://testnet-rpc.monad.xyz"
+chain_id = 10143
+use_literal_content = true
+
+# Pinned per #23's acceptance criteria: "Solidity version, optimizer settings and
+# the exact compiler are pinned in foundry.toml and recorded, because a verified
+# source must reproduce byte for byte." Matches the compiler/settings already used
+# in the sibling waterlemon-allowance-demo repo's proof-of-concept, so the two are
+# at least consistent with each other even though this is a from-scratch module.
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+
+# _executeSpend has enough locals live at once (5 params + several intermediate
+# values) to hit "stack too deep" under the legacy codegen pipeline. via_ir
+# compiles through Yul instead, which doesn't have that limitation. Slower
+# builds, but no logic changes needed. If this ever gets reverted, the fallback
+# is to shrink _executeSpend's local-variable count instead (e.g. bundling the
+# _reasonFor outputs into a struct).
+via_ir = true
+
+# Deterministic builds matter here specifically because #23 requires the deployed
+# bytecode to verify on the explorer byte-for-byte against this repo's source.
+bytecode_hash = "none"
+cbor_metadata = false
+
+gas_reports = ["AllowanceModule"]
+
+fs_permissions = [{ access = "read", path = "./" }]
+
+[fuzz]
+runs = 1024
+
+[invariant]
+runs = 256
+depth = 64
+fail_on_revert = true
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = true
